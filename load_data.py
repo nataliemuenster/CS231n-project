@@ -3,20 +3,16 @@ import numpy as np
 import os
 import urllib
 import gzip
-import cPickle as pickle
+from scipy import misc
 
-def unpickle(file):
-    fo = open(file, 'rb')
-    dict = pickle.load(fo)
-    fo.close()
-    return dict['data']
 
-def data_generator(filenames, batch_size, data_dir):
-    all_data = []
-    for filename in filenames:
-        all_data.append(unpickle(data_dir + '/' + filename))
+def data_generator(batch_size, data_dir):
+    images = []
+    for filename in os.listdir(data_dir):
+        img = misc.imread(filename)
+        images.append(img)
 
-    images = np.concatenate(all_data, axis=0)
+    #images = np.concatenate(all_data, axis=0)
 
     def get_epoch():
         np.random.shuffle(images)
@@ -29,6 +25,6 @@ def data_generator(filenames, batch_size, data_dir):
 
 def load(batch_size, data_dir):
     return (
-        data_generator(['data_batch_1','data_batch_2','data_batch_3','data_batch_4','data_batch_5'], batch_size, data_dir), 
-        data_generator(['test_batch'], batch_size, data_dir)
+        data_generator(batch_size, data_dir), 
+        data_generator(batch_size, data_dir)
     )
