@@ -13,14 +13,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-%matplotlib inline
-plt.rcParams['figure.figsize'] = (10.0, 8.0) # set default size of plots
-plt.rcParams['image.interpolation'] = 'nearest'
-plt.rcParams['image.cmap'] = 'gray'
+#%matplotlib inline
+#plt.rcParams['figure.figsize'] = (10.0, 8.0) # set default size of plots
+#plt.rcParams['image.interpolation'] = 'nearest'
+#plt.rcParams['image.cmap'] = 'gray'
 
 
 #Setup
 def show_images(images):
+    """
     images = np.reshape(images, [images.shape[0], -1])  # images reshape to (batch_size, D)
     sqrtn = int(np.ceil(np.sqrt(images.shape[0])))
     sqrtimg = int(np.ceil(np.sqrt(images.shape[1])))
@@ -36,6 +37,7 @@ def show_images(images):
         ax.set_yticklabels([])
         ax.set_aspect('equal')
         plt.imshow(img.reshape([sqrtimg,sqrtimg]))
+    """
     return 
 
 def preprocess_img(x):
@@ -54,8 +56,9 @@ def count_params(model):
 
 answers = dict(np.load('gan-checks-tf.npz'))
 
+import os
+from scipy import misc
 
-#Dataset
 class ChunkSampler(sampler.Sampler):
     """Samples elements sequentially from some offset. 
     Arguments:
@@ -72,28 +75,51 @@ class ChunkSampler(sampler.Sampler):
     def __len__(self):
         return self.num_samples
 
-NUM_TRAIN = 50000
-NUM_VAL = 5000
+NUM_TRAIN = 512
+NUM_VAL = 128
 
-NOISE_DIM = 96
+NOISE_DIM = 128
 batch_size = 128
 
-mnist_train = dset.MNIST('./cs231n/datasets/MNIST_data', train=True, download=True,
-                           transform=T.ToTensor())
-loader_train = DataLoader(mnist_train, batch_size=batch_size,
+train_dir = './dataset/train/'
+test_dir = './dataset/test/'
+train_set = []
+val_set = []
+
+for filename in os.listdir(train_dir):
+    if filename.endswith('.jpg'):
+        img = misc.imread(train_dir + filename)
+        train_set.append(img)
+
+for filename in os.listdir(test_dir):
+    if filename.endswith('.jpg'):
+        img = misc.imread(test_dir + filename)
+        val_set.append(img)
+
+train_set = torch.from_numpy(np.asarray(train_set))
+val_set = torch.from_numpy(np.asarray(val_set))
+
+print(train_set.shape)
+print(val_set.shape)
+
+train_set = train_set.transpose(1, 3)
+test_set = test_set.transpose(1, 3)
+
+#mnist_train = dset.MNIST('./cs231n/datasets/MNIST_data', train=True, download=True,
+ #                          transform=T.ToTensor())
+loader_train = DataLoader(torch.utils.data.TensorDataset(train_set), batch_size=batch_size,
                           sampler=ChunkSampler(NUM_TRAIN, 0))
 
-mnist_val = dset.MNIST('./cs231n/datasets/MNIST_data', train=True, download=True,
-                           transform=T.ToTensor())
-loader_val = DataLoader(mnist_val, batch_size=batch_size,
-                        sampler=ChunkSampler(NUM_VAL, NUM_TRAIN))
+#mnist_val = dset.MNIST('./cs231n/datasets/MNIST_data', train=True, download=True,
+ #                          transform=T.ToTensor())
+loader_val = DataLoader(torch.utils.data.TensorDataset(val_set), batch_size=batch_size,
+                        sampler=ChunkSampler(NUM_VAL, 0))
 
-
+"""
 imgs = loader_train.__iter__().next()[0].view(batch_size, 784).numpy().squeeze()
 show_images(imgs)
+"""
 
-
-#Random Noise
 def sample_noise(batch_size, dim):
     """
     Generate a PyTorch Tensor of uniform random noise.
@@ -106,12 +132,9 @@ def sample_noise(batch_size, dim):
     - A PyTorch Tensor of shape (batch_size, dim) containing uniform
       random noise in the range (-1, 1).
     """
-    #torch.rand(batch_size,dim)
-    return 2 * torch.rand(batch_size,dim) - 1
+    t = torch.Tensor(batch_size, dim).uniform_(-1, 1)
+    return t
 
-
-
-#Flatten
 class Flatten(nn.Module):
     def forward(self, x):
         N, C, H, W = x.size() # read in N, C, H, W
@@ -135,53 +158,33 @@ def initialize_weights(m):
     if isinstance(m, nn.Linear) or isinstance(m, nn.ConvTranspose2d):
         init.xavier_uniform_(m.weight.data)
 
-
-#CPU/GPU
 dtype = torch.FloatTensor
 #dtype = torch.cuda.FloatTensor ## UNCOMMENT THIS LINE IF YOU'RE ON A GPU!
 
-
-
-
-#Discriminator
 def discriminator():
     """
     Build and return a PyTorch model implementing the architecture above.
     """
-    #LeakyReLU default neg slope default = 0.01
     model = nn.Sequential(
         Flatten(),
-        nn.Linear(784,256), 
-        nn.LeakyReLU(negative_slope=0.01), 
-        nn.Linear(256,256), 
-        nn.LeakyReLU(negative_slope=0.01), 
-        nn.Linear(256,1)
+        nn.Linear(49152, 256), 
+        nn.LeakyReLU(negative_slope=0.01),
+        nn.Linear(256, 256), 
+        nn.LeakyReLU(negative_slope=0.01),
+        nn.Linear(256, 1)
     )
     return model
 
-
-
-#Generator
 def generator(noise_dim=NOISE_DIM):
     """
     Build and return a PyTorch model implementing the architecture above.
     """
+    
     model = nn.Sequential(
-        #Flatten(),
-        nn.Linear(noise_dim, 1024), 
-        nn.ReLU(), 
-        nn.Linear(1024, 1024), 
-        nn.ReLU(), 
-        nn.Linear(1024,784), 
-        nn.Tanh()
+        nn.Linear(noise_dim, 1024), nn.ReLU(), nn.Linear(1024, 1024), nn.ReLU(), nn.Linear(1024,49152), nn.Tanh()
     )
     return model
 
-
-
-
-
-#GAN Loss
 def bce_loss(input, target):
     """
     Numerically stable version of the binary cross-entropy loss function.
@@ -212,8 +215,6 @@ def discriminator_loss(logits_real, logits_fake):
     Returns:
     - loss: PyTorch Tensor containing (scalar) the loss for the discriminator.
     """
-    loss = None
-    #log() already handled in bce_loss
     true_labels = torch.ones(logits_real.size()).type(dtype)
     untrue_labels = torch.zeros(logits_fake.size()).type(dtype)
     
@@ -221,6 +222,7 @@ def discriminator_loss(logits_real, logits_fake):
     generated = bce_loss(logits_fake, untrue_labels)#.mean()
     
     return true+generated
+
 
 def generator_loss(logits_fake):
     """
@@ -233,12 +235,9 @@ def generator_loss(logits_fake):
     - loss: PyTorch Tensor containing the (scalar) loss for the generator.
     """
     true_labels = torch.ones(logits_fake.size()).type(dtype)
-    loss = bce_loss(logits_fake, true_labels)#.mean()
+    loss = bce_loss(logits_fake, true_labels)#.mean()    
     return loss
 
-
-
-#Loss Optimization
 def get_optimizer(model):
     """
     Construct and return an Adam optimizer for the model with learning rate 1e-3,
@@ -251,11 +250,9 @@ def get_optimizer(model):
     - An Adam optimizer for the model with the desired hyperparameters.
     """
     optimizer = optim.Adam(model.parameters(), lr=1e-3, betas=(0.5,0.999))
+
     return optimizer
 
-
-
-#Training
 def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, show_every=250, 
               batch_size=128, noise_size=96, num_epochs=10):
     """
@@ -272,28 +269,32 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, show
     - noise_size: Dimension of the noise to use as input to the generator.
     - num_epochs: Number of epochs over the training dataset to use for training.
     """
+    print(loader_train)
     iter_count = 0
     for epoch in range(num_epochs):
-        for x, _ in loader_train:
+        for x in loader_train:
+            x = x[0]
             if len(x) != batch_size:
                 continue
             D_solver.zero_grad()
             real_data = x.type(dtype)
+            print((2* (real_data - 0.5)).shape)
             logits_real = D(2* (real_data - 0.5)).type(dtype)
+            print(logits_real.shape)
 
-            g_fake_seed = sample_noise(batch_size, noise_size).type(dtype)
+            g_fake_seed = sample_noise(batch_size, NOISE_DIM).type(dtype)
             fake_images = G(g_fake_seed).detach()
-            logits_fake = D(fake_images.view(batch_size, 1, 28, 28))
+            logits_fake = D(fake_images.view(batch_size, 3, 128, 128))
 
             d_total_error = discriminator_loss(logits_real, logits_fake)
             d_total_error.backward()        
             D_solver.step()
 
             G_solver.zero_grad()
-            g_fake_seed = sample_noise(batch_size, noise_size).type(dtype)
+            g_fake_seed = sample_noise(batch_size, NOISE_DIM).type(dtype)
             fake_images = G(g_fake_seed)
 
-            gen_logits_fake = D(fake_images.view(batch_size, 1, 28, 28))
+            gen_logits_fake = D(fake_images.view(batch_size, 3, 128, 128))
             g_error = generator_loss(gen_logits_fake)
             g_error.backward()
             G_solver.step()
@@ -306,11 +307,6 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, show
                 print()
             iter_count += 1
 
-
-
-
-
-#Actually run the GAN!
 # Make the discriminator
 D = discriminator().type(dtype)
 
