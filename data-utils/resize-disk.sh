@@ -8,6 +8,7 @@ then
     echo "Resizing filesystem to size of partititon."
     sudo resize2fs /dev/sda1
     df -h
+    echo "If everything worked, /dev/sda1 should show the new size in the table above."
 else
     echo "Aborting program. Check the GCE console to confirm increase in disk size."
 fi
