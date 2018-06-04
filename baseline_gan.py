@@ -26,6 +26,7 @@ def show_images(images):
     print("reshaped: ", images.shape)
     plt.imshow(img)
 
+
 def save_images(images, filename):
     images = np.reshape(images, [images.shape[0], -1])  # images reshape to (batch_size, D)
     plt.imsave(filename, images)
@@ -66,11 +67,10 @@ class ChunkSampler(sampler.Sampler):
     def __len__(self):
         return self.num_samples
 
-NUM_TRAIN = 512
-NUM_VAL = 128
 
-NOISE_DIM = 96
-batch_size = 32
+
+NOISE_DIM = 32 #96
+batch_size = 32 #32
 
 train_dir = './dataset/dataset/'
 test_dir = './dataset/dataset/'
@@ -93,6 +93,9 @@ val_set = torch.from_numpy(np.asarray(val_set))
 print(train_set.shape)
 print(val_set.shape)
 
+NUM_TRAIN = train_set.shape[0] #512
+NUM_VAL = val_set.shape[0] #128
+
 train_set = train_set.transpose(1, 3)
 test_set = val_set.transpose(1, 3)
 
@@ -104,7 +107,15 @@ loader_train = DataLoader(torch.utils.data.TensorDataset(train_set), batch_size=
 #mnist_val = dset.MNIST('./cs231n/datasets/MNIST_data', train=True, download=True,
  #                          transform=T.ToTensor())
 loader_val = DataLoader(torch.utils.data.TensorDataset(train_set), batch_size=batch_size,
-                        sampler=ChunkSampler(NUM_VAL, 0))
+                        sampler=ChunkSampler(NUM_VAL, 0)) #NUM_VAL, NUM_TRAIN??
+
+print(len(loader_train))
+print(len(loader_val))
+#elem is shape 1x32x3x28x28
+#for i,elem in enumerate(loader_train):
+#    if i < 2:
+#        print(len(elem[0][0][0][0]))#[0][0][0][0]))#elem is shape: 2x128x1x28x28
+
 
 """
 imgs = loader_train.__iter__().next()[0].view(batch_size, 784).numpy().squeeze()
@@ -217,7 +228,7 @@ def discriminator():
     """
     model = nn.Sequential(
         Flatten(),
-        nn.Linear(49152, 256), 
+        nn.Linear(2352, 256), 
         nn.LeakyReLU(negative_slope=0.01),
         nn.Linear(256, 256), 
         nn.LeakyReLU(negative_slope=0.01),
@@ -240,7 +251,7 @@ def generator(noise_dim=NOISE_DIM):
     """
     
     model = nn.Sequential(
-        nn.Linear(noise_dim, 1024), nn.ReLU(), nn.Linear(1024, 1024), nn.ReLU(), nn.Linear(1024,49152), nn.Tanh()
+        nn.Linear(noise_dim, 1024), nn.ReLU(), nn.Linear(1024, 1024), nn.ReLU(), nn.Linear(1024,2352), nn.Tanh()
     )
     return model
 
@@ -347,7 +358,7 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, show
     - noise_size: Dimension of the noise to use as input to the generator.
     - num_epochs: Number of epochs over the training dataset to use for training.
     """
-    print(loader_train)
+    #print(loader_train)
     iter_count = 0
     for epoch in range(num_epochs):
         for x in loader_train:
@@ -356,12 +367,12 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, show
                 continue
             D_solver.zero_grad()
             real_data = x.type(dtype)
+            hi = 2* (real_data - 0.5)
             logits_real = D(2* (real_data - 0.5)).type(dtype)
 
             g_fake_seed = sample_noise(batch_size, noise_size).type(dtype)
             fake_images = G(g_fake_seed).detach()
-            print(fake_images.shape)
-            logits_fake = D(fake_images.view(batch_size, 3, 128, 128))
+            logits_fake = D(fake_images.view(batch_size, 3, 28, 28))
 
             d_total_error = discriminator_loss(logits_real, logits_fake)
             d_total_error.backward()
@@ -371,15 +382,15 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, show
             g_fake_seed = sample_noise(batch_size, NOISE_DIM).type(dtype)
             fake_images = G(g_fake_seed)
 
-            gen_logits_fake = D(fake_images.view(batch_size, 3, 128, 128))
+            gen_logits_fake = D(fake_images.view(batch_size, 3, 28, 28))
             g_error = generator_loss(gen_logits_fake)
             g_error.backward()
             G_solver.step()
 
             if (iter_count == 0 or iter_count % show_every == 0):
                 imgs_numpy = fake_images.data.cpu().numpy()
-                save_images(imgs_numpy, 'tmp_iter' + str(iter_count) + '.png')
-#plt.show()
+                #save_images(imgs_numpy, 'tmp_iter' + str(iter_count) + '.png')
+                plt.show()
                 print('Iter: {}, D: {:.4}, G:{:.4}'.format(iter_count,d_total_error.item(),g_error.item()))
             iter_count += 1
 
@@ -396,4 +407,4 @@ G = generator().type(dtype)
 D_solver = get_optimizer(D)
 G_solver = get_optimizer(G)
 # Run it!
-run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss)
+run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, batch_size=batch_size, noise_size = NOISE_DIM)
