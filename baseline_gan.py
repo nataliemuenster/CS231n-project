@@ -28,7 +28,9 @@ def show_images(images):
 
 
 def save_images(images, filename):
-    images = np.reshape(images, [images.shape[0], -1])  # images reshape to (batch_size, D)
+    print("original shape: ", images.shape)
+#images = np.reshape(images, [images.shape[0], -1])  # images reshape to (batch_size, D)
+#print("reshaped: ", images.shape)
     plt.imsave(filename, images)
 
 def preprocess_img(x):
@@ -362,7 +364,9 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, show
     iter_count = 0
     for epoch in range(num_epochs):
         for x in loader_train:
+            print("x len: ", len(x))
             x = x[0]
+            print("x len: ", len(x))
             if len(x) != batch_size:
                 continue
             D_solver.zero_grad()
@@ -388,7 +392,10 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, show
             G_solver.step()
 
             if (iter_count == 0 or iter_count % show_every == 0):
-                imgs_numpy = fake_images.data.cpu().numpy()
+                im = fake_images.view(batch_size, 3, 28, 28)[0].transpose(0, 2)
+                print("!!!", im.shape)
+                imgs_numpy = im.data.cpu().numpy()
+#imgs_numpy = fake_images.data.cpu().numpy()
                 save_images(imgs_numpy, 'dataset/out/tmp_iter' + str(iter_count) + '.png')
 #plt.show()
                 print('Iter: {}, D: {:.4}, G:{:.4}'.format(iter_count,d_total_error.item(),g_error.item()))
