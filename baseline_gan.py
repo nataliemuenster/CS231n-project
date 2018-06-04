@@ -389,8 +389,8 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, show
 
             if (iter_count == 0 or iter_count % show_every == 0):
                 imgs_numpy = fake_images.data.cpu().numpy()
-                #save_images(imgs_numpy, 'tmp_iter' + str(iter_count) + '.png')
-                plt.show()
+                save_images(imgs_numpy, 'dataset/out/tmp_iter' + str(iter_count) + '.png')
+#plt.show()
                 print('Iter: {}, D: {:.4}, G:{:.4}'.format(iter_count,d_total_error.item(),g_error.item()))
             iter_count += 1
 
