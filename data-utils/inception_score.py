@@ -1,4 +1,5 @@
-#Cite: https://github.com/sbarratt/inception-score-pytorch
+#Refined from original paper: https://arxiv.org/pdf/1801.01973.pdf
+#https://github.com/sbarratt/inception-score-pytorch
 
 import torch
 from torch import nn
@@ -13,7 +14,7 @@ import torchvision.models
 import numpy as np
 from scipy.stats import entropy
 
-img_dir = "../dataset/out128-noise_dim32/"
+img_dir = "../dataset/dataset128"#out128-noise_dim32/"
 
 def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
     """Computes the inception score of the generated images imgs
@@ -78,9 +79,10 @@ def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
 if __name__ == '__main__':
     generated_imgs = []
     for filename in os.listdir(img_dir):
-        if filename.endswith('.png'):
+        if filename.endswith('.png'): #images must be pngs!
             img = misc.imread(img_dir + filename)
             generated_imgs.append(img)
+    assert len(generated_imgs) > 0
 
     generated_imgs = np.asarray(generated_imgs)
     generated_imgs = generated_imgs.T[:][:][:][:3].T #way to get around weird problem with array slicing
