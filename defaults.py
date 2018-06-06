@@ -2,8 +2,8 @@ def get_defaults():
   DEFAULTS = {
     # Model parameters
     'noise_dim': 96,
-    'image_dim': 32,
-    'image_channels': 1,
+    'image_dim': 64,
+    'image_channels': 3,
     'disc_channels': 64,
     'gen_channels': 64,
 

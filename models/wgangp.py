@@ -88,7 +88,7 @@ class Generator(nn.Module):
 
 class WGAN_GP(nn.Module):
   def __init__(self, dtype, noise_dim, image_dim, image_channels,
-               disc_channels, gen_channels, cuda):
+               disc_channels, gen_channels, dataset_name, cuda):
     # Configuration values
     super().__init__()
     self.datatype = dtype
@@ -97,6 +97,7 @@ class WGAN_GP(nn.Module):
     self.image_channels = image_channels
     self.disc_channels = disc_channels
     self.gen_channels = gen_channels
+    self.dataset_name = dataset_name
     self.cuda = cuda
 
     # Model Components
@@ -120,13 +121,14 @@ class WGAN_GP(nn.Module):
         '-n{noise_dim}'
         '-d{disc_channels}'
         '-g{gen_channels}'
-        '-{image_dim}x{image_dim}x{image_channels}'
+        '-{dataset_name}-{image_dim}x{image_dim}x{image_channels}'
     ).format(
         noise_dim=self.noise_dim,
         disc_channels=self.disc_channels,
         gen_channels=self.gen_channels,
         image_dim=self.image_dim,
         image_channels=self.image_channels,
+        dataset_name=self.dataset_name
     )
 
   def disc_loss(self, real_images, noise, return_g=False):

@@ -5,32 +5,39 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 import torchvision.datasets as dset
 
+import reporter
 from models.wgangp import WGAN_GP
 from defaults import get_defaults
 from train import train
+from datamanager import GoogleLandmark
 
 def run(user_args):
   # Get full set of user and default args.
   args = get_defaults()
   args_len = len(args)
   args.update(user_args)
-  assert(len(args) == args_len)  # Ensure there's no typos in the argparser below.
+  assert(len(args) == args_len + 1)  # Ensure there's no typos in the argparser below.
   print("Running with arguments:")
   for arg, value in args.items():
     print("{}: {}".format(arg, value))
+  print()
 
   # Setup CPU or GPU environment
   if args['use_cuda'] and not torch.cuda.is_available():
-    args['use_cuda'] = False
     print("Could not access CUDA. Using CPU...")
+    args['use_cuda'] = False
+    device = torch.device('cpu')
+    dtype = torch.FloatTensor
   elif args['use_cuda']:
     print("Using CUDA.")
     device = torch.device('cuda')
     dtype = torch.cuda.FloatTensor
-  else:      
+  else:
+    print("Using CPU.")
     device = torch.device('cpu')
     dtype = torch.FloatTensor
 
+  print("Initializing model...")
   # Define the WGAN
   W = WGAN_GP(
     dtype,
@@ -39,6 +46,7 @@ def run(user_args):
     image_channels=args['image_channels'],
     disc_channels=args['disc_channels'],
     gen_channels=args['gen_channels'],
+    dataset_name=args['dataset'],
     cuda=args['use_cuda']
   )
 
@@ -48,24 +56,41 @@ def run(user_args):
   elif args['init_method'] == 'xavier':
     utils.xavier_initialize(W)
 
+  print("Initializing dataset...")
   # Prepare and load the data
-  mnist_train = dset.MNIST('./data/MNIST', train=True, download=True,
-                 transform=transforms.Compose([
-                  transforms.ToTensor(),
-                  transforms.ToPILImage(),
-                  transforms.Pad(2),
-                  transforms.ToTensor(),
-                ]))
-  loader_train = DataLoader(mnist_train, batch_size=args['batch_size'],
+  if args['dataset'] == 'mnist':
+    dataset = dset.MNIST('./data/MNIST', train=True, download=True,
+                   transform=transforms.Compose([
+                    transforms.ToTensor(),
+                    transforms.ToPILImage(),
+                    transforms.Pad(2),
+                    transforms.ToTensor(),
+                  ]))
+  else:
+    dataset = GoogleLandmark('./data/train', [5554],
+                   transform=lambda c: transforms.Compose([
+                    transforms.CenterCrop(c),
+                    transforms.Resize(args['image_dim']),
+                    transforms.ToTensor(),
+                  ]))
+  data_loader = DataLoader(dataset, batch_size=args['batch_size'],
                 shuffle=True, drop_last=True, pin_memory=True if args['use_cuda'] else False)
-  # imgs = loader_train.__iter__().next()[0].view(batch_size, 1 * 32 * 32).numpy().squeeze()
-  # utils.show_images(imgs)
+
+  # Visualize training images in Visdom.
+  reporter.visualize_images(
+    data_loader.__iter__().next()[0],
+    'Training data samples',
+    env=W.name
+  )
 
   # Train!
-  train(W, loader_train, dtype, args)
+  print("Training model...")
+  train(W, data_loader, dtype, args)
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser(description='Run WGAN-GP on the dataset.')
+  parser = argparse.ArgumentParser(description='Run WGAN-GP on a dataset.')
+
+  parser.add_argument('dataset', type=str, choices=['mnist', 'landmarks'], help='Dataset to run WGAN-GP on.')
 
   # Model parameters
   parser.add_argument('--noise_dim', type=int, help='Dimension of sample noise for generator.')

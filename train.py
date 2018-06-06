@@ -1,8 +1,5 @@
-# import matplotlib.pyplot as plt
 from tqdm import tqdm
-
 import reporter
-# import utils
 
 def train(model, data, dtype, args):
   iter_count = 0
@@ -38,13 +35,6 @@ def train(model, data, dtype, args):
       gen_loss = model.gen_loss(noise)
       gen_loss.backward()
       gen_solver.step()
-      
-      # Report as necessary
-      # if (iter_count % args['losses_every'] == 0):
-      #   print('Iter: {}, D: {:.4}, G:{:.4}'.format(iter_count, disc_loss.item(), gen_loss.item()))
-        # imgs = model.sample_images(sample_size).type(dtype).data
-        # utils.show_images(imgs)
-        # plt.show()
 
       if iter_count % args['losses_every'] == 0:
         reporter.visualize_scalar(
