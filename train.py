@@ -59,3 +59,9 @@ def train(model, data, dtype, args):
         )
       
       iter_count += 1
+  reporter.visualize_images(
+    model.sample_images(args['sample_size']).data,
+    'final generated samples',
+    env=model.name
+  )
+
