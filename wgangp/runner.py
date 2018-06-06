@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 import torchvision.datasets as dset
 
 import reporter
-from models.wgangp import WGAN_GP
+from wgangp import WGAN_GP
 from defaults import get_defaults
 from train import train
 from datamanager import GoogleLandmark
