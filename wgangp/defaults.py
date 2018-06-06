@@ -27,6 +27,7 @@ def get_defaults():
     'images_every': 100,
     'losses_every': 10,
     'sample_size': 36,
+    'tag': '',
 
     # Cuda
     'use_cuda': False,

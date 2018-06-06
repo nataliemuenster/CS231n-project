@@ -17,6 +17,7 @@ def run(user_args):
   args_len = len(args)
   args.update(user_args)
   assert(len(args) == args_len + 1)  # Ensure there's no typos in the argparser below.
+                                     # +1 for dataset arg
   print("Running with arguments:")
   for arg, value in args.items():
     print("{}: {}".format(arg, value))
@@ -47,7 +48,8 @@ def run(user_args):
     disc_channels=args['disc_channels'],
     gen_channels=args['gen_channels'],
     dataset_name=args['dataset'],
-    cuda=args['use_cuda']
+    cuda=args['use_cuda'],
+    tag=args['tag']
   )
 
   # Initialize weights and parameters
@@ -119,6 +121,7 @@ if __name__ == '__main__':
   parser.add_argument('--images_every', type=int, help='How often (in iterations) to report images during training.')
   parser.add_argument('--losses_every', type=int, help='How often (in iterations) to report losses during training.')
   parser.add_argument('--sample_size', type=int, help='Number of images per report during during training.')
+  parser.add_argument('--tag', type=str, help='A string with extra info about the model.')
 
   # Cuda
   parser.add_argument('--use_cuda', action='store_true', help='Flag for using Cuda GPU instead of CPU.')

@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch import autograd, nn
 from torch.autograd import Variable
@@ -13,30 +14,25 @@ class Discriminator(nn.Module):
     self.channels = channels
 
     # layers
-    self.conv1 = nn.Conv2d(
-      image_channels, channels,
-      kernel_size=4, stride=2, padding=1
-    )
-    self.conv2 = nn.Conv2d(
-      channels, channels*2,
-      kernel_size=4, stride=2, padding=1
-    )
-    self.conv3 = nn.Conv2d(
-      channels*2, channels*4,
-      kernel_size=4, stride=2, padding=1
-    )
-    self.conv4 = nn.Conv2d(
-      channels*4, channels*8,
-      kernel_size=4, stride=1, padding=1,
-    )
-    self.fc = nn.Linear((image_dim//8)**2 * channels*4, 1)
+    self.num_interm_layers = int(np.log2(image_dim / 4))
+    for i in range(self.num_interm_layers):
+      channels_in = image_channels if i == 0 else channels * 2**(i-1)
+      channels_out = channels * 2**i
+      setattr(self, 'conv' + str(i+1), nn.Conv2d(
+        channels_in, channels_out,
+        kernel_size=4, stride=2, padding=1
+      ))
+    
+    setattr(self, 'conv' + str(self.num_interm_layers + 1), nn.Conv2d(
+      channels * 2**(self.num_interm_layers - 1), channels * 2**self.num_interm_layers,
+      kernel_size=5, stride=1, padding=2,
+    ))
+    self.fc = nn.Linear(4 * 4 * channels * 2**self.num_interm_layers, 1)
 
   def forward(self, x):
-    x = F.leaky_relu(self.conv1(x))
-    x = F.leaky_relu(self.conv2(x))
-    x = F.leaky_relu(self.conv3(x))
-    x = F.leaky_relu(self.conv4(x))
-    x = x.view(-1, (self.image_dim//8)**2 * self.channels*4)
+    for i in range(1, self.num_interm_layers + 2):
+      x = F.leaky_relu(getattr(self, 'conv' + str(i))(x))
+    x = x.view(-1, 4 * 4 * self.channels * 2**self.num_interm_layers)
     return self.fc(x)
 
 class Generator(nn.Module):
@@ -47,48 +43,41 @@ class Generator(nn.Module):
     self.image_dim = image_dim
     self.image_channels = image_channels
     self.channels = channels
+    self.num_interm_layers = int(np.log2(image_dim / 4))
 
     # layers
-    self.fc = nn.Linear(noise_dim, (image_dim//8)**2 * channels*8)
-    self.bn0 = nn.BatchNorm2d(channels*8)
-    self.bn1 = nn.BatchNorm2d(channels*4)
-    self.deconv1 = nn.ConvTranspose2d(
-      channels*8, channels*4,
-      kernel_size=4, stride=2, padding=1
-    )
-    self.bn2 = nn.BatchNorm2d(channels*2)
-    self.deconv2 = nn.ConvTranspose2d(
-      channels*4, channels*2,
-      kernel_size=4, stride=2, padding=1,
-    )
-    self.bn3 = nn.BatchNorm2d(channels)
-    self.deconv3 = nn.ConvTranspose2d(
-      channels*2, channels,
-      kernel_size=4, stride=2, padding=1
-    )
-    self.deconv4 = nn.ConvTranspose2d(
+    self.fc = nn.Linear(noise_dim, 4**2 * self.channels * 2**self.num_interm_layers)
+    self.bn0 = nn.BatchNorm2d(channels * 2**self.num_interm_layers)
+
+    for i in range(self.num_interm_layers):
+      channels_in = channels * 2**(self.num_interm_layers - i)
+      channels_out = channels * 2**(self.num_interm_layers - i - 1)
+      setattr(self, 'deconv' + str(i+1), nn.ConvTranspose2d(
+        channels_in, channels_out,
+        kernel_size=4, stride=2, padding=1
+      ))
+      setattr(self, 'bn' + str(i+1), nn.BatchNorm2d(channels_out))
+    
+    setattr(self, 'deconv' + str(self.num_interm_layers + 1), nn.ConvTranspose2d(
       channels, image_channels,
       kernel_size=3, stride=1, padding=1
-    )
+    ))
 
   def forward(self, z):
     g = F.relu(self.bn0(
-      self.fc(z).view(
-      z.size(0),
-      self.channels*8,
-      self.image_dim//8,
-      self.image_dim//8,
-    )))
-    g = F.relu(self.bn1(self.deconv1(g)))
-    g = F.relu(self.bn2(self.deconv2(g)))
-    g = F.relu(self.bn3(self.deconv3(g)))
-    g = self.deconv4(g)
+      self.fc(z).view(-1, self.channels * 2**self.num_interm_layers, 4, 4)
+    ))
+    for i in range(1, self.num_interm_layers + 1):
+      g = F.relu(getattr(self, 'bn' + str(i))(
+        getattr(self, 'deconv' + str(i))(g)
+      ))
+    g = getattr(self, 'deconv' + str(self.num_interm_layers + 1))(g)
     return F.sigmoid(g)
 
 
 class WGAN_GP(nn.Module):
   def __init__(self, dtype, noise_dim, image_dim, image_channels,
-               disc_channels, gen_channels, dataset_name, cuda):
+               disc_channels, gen_channels, dataset_name, cuda, tag):
     # Configuration values
     super().__init__()
     self.datatype = dtype
@@ -99,6 +88,7 @@ class WGAN_GP(nn.Module):
     self.gen_channels = gen_channels
     self.dataset_name = dataset_name
     self.cuda = cuda
+    self.tag = tag
 
     # Model Components
     self.discriminator = Discriminator(
@@ -118,11 +108,13 @@ class WGAN_GP(nn.Module):
   def name(self):
     return (
         'WGAN-GP'
+        '-{tag}'
         '-n{noise_dim}'
         '-d{disc_channels}'
         '-g{gen_channels}'
         '-{dataset_name}-{image_dim}x{image_dim}x{image_channels}'
     ).format(
+        tag=self.tag,
         noise_dim=self.noise_dim,
         disc_channels=self.disc_channels,
         gen_channels=self.gen_channels,

@@ -54,7 +54,7 @@ def train(model, data, dtype, args):
       if iter_count % args['images_every'] == 0:
         reporter.visualize_images(
           model.sample_images(args['sample_size']).data,
-          'generated samples',
+          'generated samples {}'.format(iter_count // args['images_every']),
           env=model.name
         )
       
