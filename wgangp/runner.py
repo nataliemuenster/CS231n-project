@@ -59,7 +59,7 @@ def run(user_args):
   print("Initializing dataset...")
   # Prepare and load the data
   if args['dataset'] == 'mnist':
-    dataset = dset.MNIST('./data/MNIST', train=True, download=True,
+    dataset = dset.MNIST('../data/MNIST', train=True, download=True,
                    transform=transforms.Compose([
                     transforms.ToTensor(),
                     transforms.ToPILImage(),
@@ -67,7 +67,7 @@ def run(user_args):
                     transforms.ToTensor(),
                   ]))
   else:
-    dataset = GoogleLandmark('./data/train', [5554],
+    dataset = GoogleLandmark('../data/train', [5554],
                    transform=lambda c: transforms.Compose([
                     transforms.CenterCrop(c),
                     transforms.Resize(args['image_dim']),
