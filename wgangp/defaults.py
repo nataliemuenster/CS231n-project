@@ -27,6 +27,7 @@ def get_defaults():
     'lambda_val': 10,
 
     # Optimizer hyperparameters
+    'optim': 'Adam',
     'learning_rate': 1e-3,
     'beta1': 0.5,
     'beta2': 0.9,

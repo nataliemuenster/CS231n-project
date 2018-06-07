@@ -49,7 +49,8 @@ def run(user_args):
     gen_channels=args['gen_channels'],
     dataset_name=args['dataset'],
     cuda=args['use_cuda'],
-    tag=args['tag']
+    tag=args['tag'],
+    optim=args['optim']
   )
 
   # Initialize weights and parameters
@@ -117,6 +118,7 @@ if __name__ == '__main__':
   parser.add_argument('--lambda_val', type=float, help='Hyperparameter for gradient penalty.')
 
   # Optimizer hyperparameters
+  parser.add_argument('--optim', type=str, help='Optimizer: Adam or RMS.')
   parser.add_argument('--learning_rate', type=float, help='Learning rate for ADAM optimizer.')
   parser.add_argument('--beta1', type=float, help='Beta 1 value for ADAM optimizer.')
   parser.add_argument('--beta2', type=float, help='Beta 2 value for ADAM optimizer.')

@@ -4,8 +4,8 @@ from defaults import CHECKPOINTS_DIR, FINALS_DIR
 
 def train(model, data, dtype, args):
   iter_count = 0
-  disc_solver = model.disc_optimizer(args['learning_rate'], args['beta1'], args['beta2'], args['weight_decay'])
-  gen_solver = model.gen_optimizer(args['learning_rate'], args['beta1'], args['beta2'], args['weight_decay'])
+  disc_solver = model.disc_optimizer(args['learning_rate'], args['beta1'], args['beta2'], args['weight_decay'], args['optim'])
+  gen_solver = model.gen_optimizer(args['learning_rate'], args['beta1'], args['beta2'], args['weight_decay'], args['optim'])
 
   starting_epoch = 0
   if args['resume']:
