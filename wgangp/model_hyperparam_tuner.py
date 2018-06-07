@@ -2,12 +2,12 @@ from random import randint
 from runner import run
 
 for i in range(10):
-  noise_dim = randint(100, 150)
-  disc_channels = randint(64, 96)
-  gen_channels = randint(64, 96)
-  disc_iterations = randint(5, 8)
-  learning_rates = 10**randint(-6, -2)
-  tag = 'hyperparam-{}n-{}d-{}g-{}i'.format(noise_dim, disc_channels, gen_channels, disc_iterations)
+  noise_dim = randint(50, 150)
+  disc_channels = randint(32, 96)
+  gen_channels = randint(32, 96)
+  disc_iterations = randint(1, 8)
+  learning_rate = 10**randint(-6, -2)
+  tag = 'hyperparam-{}n-{}d-{}g-{}i-{}lr'.format(noise_dim, disc_channels, gen_channels, disc_iterations, learning_rate)
   print('Attempting {}'.format(tag))
 
   args = {
@@ -22,7 +22,7 @@ for i in range(10):
     'disc_channels': disc_channels,
     'gen_channels': gen_channels,
     'disc_iterations': disc_iterations,
-    'learning_rates': learning_rates,
+    'learning_rate': learning_rate,
     'tag': tag,
   }
 
