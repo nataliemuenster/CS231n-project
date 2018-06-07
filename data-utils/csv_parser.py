@@ -1,8 +1,5 @@
 ### USAGE: python download_data.py <data_file.csv> <output_file> <landmark_id> ###
-
-
 import sys, os, csv
-from StringIO import StringIO
 
 
 if __name__ == '__main__':
