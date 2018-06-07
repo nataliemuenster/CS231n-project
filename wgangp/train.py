@@ -1,6 +1,6 @@
 from tqdm import tqdm
 import checkpoints, reporter
-from defaults import CHECKPOINTS_DIR, FINALS_DIR
+from defaults import CHECKPOINTS_DIR, FINALS_DIR, FINAL_IMGS
 
 def train(model, data, dtype, args):
   iter_count = 0
@@ -72,14 +72,12 @@ def train(model, data, dtype, args):
         )
 
       if iter_count % args['checkpoint_every'] == 0 and iter_count != 0:
-        checkpoints.save_checkpoint(model, CHECKPOINTS_DIR, iter_count)
+        checkpoints.save_checkpoint(model, CHECKPOINTS_DIR, iter_count, args)
       
       iter_count += 1
     args['resume'] = None
-  reporter.visualize_images(
-    model.sample_images(args['sample_size']).data,
-    'final generated samples',
-    env=model.name
-  )
+  samples = model.sample_images(args['sample_size']).data
+  reporter.visualize_images(samples, 'final generated samples', env=model.name)
+  checkpoints.save_images(samples, args['tag'])
   checkpoints.save_checkpoint(model, FINALS_DIR, iter_count)
 
