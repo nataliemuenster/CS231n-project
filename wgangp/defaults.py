@@ -3,6 +3,9 @@ FINALS_DIR = '../final_models'
 
 def get_defaults():
   DEFAULTS = {
+    # Dataset Classes
+    'classes': [5554],  # Petronas Towers by default, cuz it's my fave
+
     # Resume
     'resume': None,
 
