@@ -72,7 +72,7 @@ def train(model, data, dtype, args):
         )
 
       if iter_count % args['checkpoint_every'] == 0 and iter_count != 0:
-        checkpoints.save_checkpoint(model, CHECKPOINTS_DIR, iter_count)
+        checkpoints.save_checkpoint(model, CHECKPOINTS_DIR, iter_count, args)
       
       iter_count += 1
     args['resume'] = None
