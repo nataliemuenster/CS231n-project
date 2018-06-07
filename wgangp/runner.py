@@ -69,7 +69,7 @@ def run(user_args):
                     transforms.ToTensor(),
                   ]))
   else:
-    dataset = GoogleLandmark('../data/train', [5554],
+    dataset = GoogleLandmark('../data/train', args['classes'],
                    transform=lambda c: transforms.Compose([
                     transforms.CenterCrop(c),
                     transforms.Resize(args['image_dim']),
@@ -92,8 +92,9 @@ def run(user_args):
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Run WGAN-GP on a dataset.')
 
-  # Dataset (required)
+  # Dataset
   parser.add_argument('dataset', type=str, choices=['mnist', 'landmarks'], help='Dataset to run WGAN-GP on.')
+  parser.add_argument('--classes', nargs='+', help='Classes of landmarks dataset to train on.')
 
   # Resume
   parser.add_argument('--resume', type=int, help='Iteration to resume from using checkpoint.')

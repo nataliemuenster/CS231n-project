@@ -5,3 +5,5 @@ data
 errors-*.txt
 dataset
 checkpoints
+final_models
+__pycache__
