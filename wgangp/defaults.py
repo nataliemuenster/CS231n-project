@@ -1,4 +1,5 @@
 CHECKPOINTS_DIR = '../checkpoints'
+FINALS_DIR = '../final_models'
 
 def get_defaults():
   DEFAULTS = {

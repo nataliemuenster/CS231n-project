@@ -1,6 +1,6 @@
 from tqdm import tqdm
 import checkpoints, reporter
-from defaults import CHECKPOINTS_DIR
+from defaults import CHECKPOINTS_DIR, FINALS_DIR
 
 def train(model, data, dtype, args):
   iter_count = 0
@@ -81,4 +81,5 @@ def train(model, data, dtype, args):
     'final generated samples',
     env=model.name
   )
+  checkpoints.save_checkpoint(model, FINALS_DIR, iter_count)
 
