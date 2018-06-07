@@ -79,5 +79,5 @@ def train(model, data, dtype, args):
   samples = model.sample_images(args['sample_size']).data
   reporter.visualize_images(samples, 'final generated samples', env=model.name)
   checkpoints.save_images(samples, args['tag'])
-  checkpoints.save_checkpoint(model, FINALS_DIR, iter_count)
+  checkpoints.save_checkpoint(model, FINALS_DIR, iter_count, args)
 
