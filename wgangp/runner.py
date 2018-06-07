@@ -92,7 +92,11 @@ def run(user_args):
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Run WGAN-GP on a dataset.')
 
+  # Dataset (required)
   parser.add_argument('dataset', type=str, choices=['mnist', 'landmarks'], help='Dataset to run WGAN-GP on.')
+
+  # Resume
+  parser.add_argument('--resume', type=int, help='Iteration to resume from using checkpoint.')
 
   # Model parameters
   parser.add_argument('--noise_dim', type=int, help='Dimension of sample noise for generator.')
@@ -117,9 +121,10 @@ if __name__ == '__main__':
   parser.add_argument('--beta2', type=float, help='Beta 2 value for ADAM optimizer.')
   parser.add_argument('--weight_decay', type=float, help='Weight decay for ADAM optimizer.')
 
-  # Reporter configuration
+  # Reporter and checkpoint configuration
   parser.add_argument('--images_every', type=int, help='How often (in iterations) to report images during training.')
   parser.add_argument('--losses_every', type=int, help='How often (in iterations) to report losses during training.')
+  parser.add_argument('--checkpoint_every', type=int, help='How often (in iterations) to save checkpoints.')
   parser.add_argument('--sample_size', type=int, help='Number of images per report during during training.')
   parser.add_argument('--tag', type=str, help='A string with extra info about the model.')
 

@@ -1,5 +1,10 @@
+CHECKPOINTS_DIR = '../checkpoints'
+
 def get_defaults():
   DEFAULTS = {
+    # Resume
+    'resume': None,
+
     # Model parameters
     'noise_dim': 96,
     'image_dim': 64,
@@ -23,9 +28,10 @@ def get_defaults():
     'beta2': 0.9,
     'weight_decay': 1e-4,
 
-    # Reporter configuration
+    # Reporter and checkpoint configuration
     'images_every': 100,
     'losses_every': 10,
+    'checkpoint_every': 300,
     'sample_size': 36,
     'tag': '',
 

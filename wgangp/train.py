@@ -1,12 +1,25 @@
 from tqdm import tqdm
-import reporter
+import checkpoints, reporter
+from defaults import CHECKPOINTS_DIR
 
 def train(model, data, dtype, args):
   iter_count = 0
   disc_solver = model.disc_optimizer(args['learning_rate'], args['beta1'], args['beta2'], args['weight_decay'])
   gen_solver = model.gen_optimizer(args['learning_rate'], args['beta1'], args['beta2'], args['weight_decay'])
-  for epoch in tqdm(range(args['num_epochs']), desc='epochs', position=1):
-    for batch_index, batch in tqdm(enumerate(data, 1), desc='iterations', position=2, total=len(data)):
+
+  starting_epoch = 0
+  if args['resume']:
+    checkpoints.load_checkpoint(model, CHECKPOINTS_DIR, args['resume'])
+    starting_epoch = args['resume'] // len(data)
+    iter_count = args['resume']
+    print('Loading checkpoint of {name} at {chkpt_iter}'.format(
+      name=model.name, chkpt_iter=args['resume']
+    ))
+
+  for epoch in tqdm(range(starting_epoch, args['num_epochs']), desc='epochs', position=1):
+    for batch_index, batch in tqdm(enumerate(data), desc='iterations', position=2, total=len(data)):
+      if args['resume'] and batch_index < iter_count % len(data):
+        continue
       try:
         x, _ = batch
       except ValueError:
@@ -57,8 +70,12 @@ def train(model, data, dtype, args):
           'generated samples {}'.format(iter_count // args['images_every']),
           env=model.name
         )
+
+      if iter_count % args['checkpoint_every'] == 0 and iter_count != 0:
+        checkpoints.save_checkpoint(model, CHECKPOINTS_DIR, iter_count)
       
       iter_count += 1
+    args['resume'] = None
   reporter.visualize_images(
     model.sample_images(args['sample_size']).data,
     'final generated samples',
