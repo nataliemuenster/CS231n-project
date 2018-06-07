@@ -77,7 +77,7 @@ class Generator(nn.Module):
 
 class WGAN_GP(nn.Module):
   def __init__(self, dtype, noise_dim, image_dim, image_channels,
-               disc_channels, gen_channels, dataset_name, cuda, tag, optim):
+               disc_channels, gen_channels, dataset_name, cuda, tag, optimizer):
     # Configuration values
     super().__init__()
     self.datatype = dtype
@@ -89,7 +89,7 @@ class WGAN_GP(nn.Module):
     self.dataset_name = dataset_name
     self.cuda = cuda
     self.tag = tag
-    self.optim = optim
+    self.optim = optimizer
 
     # Model Components
     self.discriminator = Discriminator(
@@ -137,16 +137,16 @@ class WGAN_GP(nn.Module):
     loss = -logits_fake.mean()
     return (loss, fake_images) if return_g else loss
 
-  def disc_optimizer(self, lr, beta1, beta2, weight_decay, optim):
-    if optim == "Adam":
+  def disc_optimizer(self, lr, beta1, beta2, weight_decay, optimizer):
+    if optimizer == "Adam":
         return optim.Adam(self.discriminator.parameters(), lr=lr, betas=(beta1, beta2), weight_decay=weight_decay)
-    elif optim == "RMS":
+    elif optimizer == "RMS":
         return optim.RMSprop(self.discriminator.parameters(), lr=lr, weight_decay=weight_decay)
 
-  def gen_optimizer(self, lr, beta1, beta2, weight_decay, optim):
-    if optim == "Adam":
+  def gen_optimizer(self, lr, beta1, beta2, weight_decay, optimizer):
+    if optimizer == "Adam":
         return optim.Adam(self.generator.parameters(), lr=lr, betas=(beta1, beta2), weight_decay=weight_decay)
-    elif optim == "RMS":
+    elif optimizer == "RMS":
         return optim.RMSprop(self.discriminator.parameters(), lr=lr, weight_decay=weight_decay)
 
   def sample_images(self, num_images):

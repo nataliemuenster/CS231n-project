@@ -50,7 +50,7 @@ def run(user_args):
     dataset_name=args['dataset'],
     cuda=args['use_cuda'],
     tag=args['tag'],
-    optim=args['optim']
+    optimizer=args['optim']
   )
 
   # Initialize weights and parameters
