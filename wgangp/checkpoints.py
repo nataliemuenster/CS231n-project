@@ -14,3 +14,12 @@ def load_checkpoint(curr_model, directory, iteration):
 
   checkpoint = torch.load(path)
   curr_model.load_state_dict(checkpoint)
+
+def save_images(vectors, tag):
+  directory = './' + tag.replace(' ', '')
+  if not os.path.exists(directory):
+    os.mkdir(directory)
+  it = 0
+  for vec in vectors:
+    torch.save(vec, './' + directory + '/image' + str(it) + '.jpg')
+    it += 1
