@@ -1,6 +1,6 @@
 from tqdm import tqdm
 import checkpoints, reporter
-from defaults import CHECKPOINTS_DIR, FINALS_DIR, FINAL_IMGS
+from defaults import CHECKPOINTS_DIR, FINALS_DIR
 
 def train(model, data, dtype, args):
   iter_count = 0
