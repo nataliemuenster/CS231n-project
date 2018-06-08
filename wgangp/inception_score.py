@@ -8,13 +8,15 @@ from torch.nn import functional as F
 import torch.utils.data
 import os
 from scipy import misc
-
+import random
 import torchvision.models
+from torchvision import transforms
+from datamanager import GoogleLandmark
 
 import numpy as np
 from scipy.stats import entropy
 
-img_dir = "../dataset/good-pngs/"#out128-noise_dim32/"
+img_dir = "../data/train/" #out128-noise_dim32/"
 
 def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
     """Computes the inception score of the generated images imgs
@@ -37,8 +39,8 @@ def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
         dtype = torch.FloatTensor
 
     # Set up dataloader
-    dataloader = torch.utils.data.DataLoader(imgs, batch_size=batch_size)
-    
+    dataloader = torch.utils.data.DataLoader(imgs, batch_size=batch_size, shuffle=True)
+
     # Load inception model
     inception_model = torchvision.models.inception_v3(pretrained=True, transform_input=False).type(dtype)
     
@@ -54,7 +56,7 @@ def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
     preds = np.zeros((N, 1000))
 
     for i, batch in enumerate(dataloader, 0):
-        batch = batch.type(dtype)
+        batch = batch[0].type(dtype)
         batchv = Variable(batch)
         batch_size_i = batch.size()[0]
 
@@ -76,23 +78,36 @@ def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
         
 
 if __name__ == '__main__':
-    generated_imgs = []
-    for filename in os.listdir(img_dir):
-        if filename == ".DS_Store":
-            continue
-        img = misc.imread(img_dir + filename)
-        generated_imgs.append(img)
-        #if filename.endswith('.png'): #images must be pngs!
-        #    img = misc.imread(img_dir + filename)
-        #    generated_imgs.append(img)
-    assert len(generated_imgs) > 0
-
-    generated_imgs = np.asarray(generated_imgs)
-    generated_imgs = generated_imgs.T[:][:][:][:3].T #way to get around weird problem with array slicing
-    generated_imgs = np.moveaxis(generated_imgs,-1,1) #NxHxWxC -> NxCxHxW
-    generated_imgs = 2 * (generated_imgs/np.amax(generated_imgs)) - 1 #normalize to between -1 and 1 as directed in the specs
+    dataset = GoogleLandmark('../data/train', [2743,9633,5554],
+                   transform=lambda c: transforms.Compose([
+                    transforms.CenterCrop(c),
+                    transforms.Resize(128),
+                    transforms.ToTensor(),
+                  ]))
+    
+    #for filename in os.listdir(img_dir):
+    #    if num_imgs %100 == 0:
+    #        print(num_imgs)
+    #    if num_imgs == 33:
+    #        break
+    #    if filename == ".DS_Store":
+    #        continue
+    #    img = misc.imread(img_dir + filename, mode='RGB')
+    #    generated_images.append(np.asarray(img))
+    #    num_imgs += 1
+    
+    #print("total images:" + str(num_imgs))
+    #assert num_imgs > 0
+    #print(generated_imgs[0])
+    #generated_imgs = np.vstack(generated_images)
+    
+    #generated_imgs = random.sample(generated_imgs, num_imgs/10)
+    #print("images used:" + str(len(generated_imgs)))
+    #generated_imgs = np.asarray(generated_imgs)
+    #print(generated_imgs.shape)
+    #generated_imgs = np.moveaxis(generated_imgs,-1,1) #NxHxWxC -> NxCxHxW
+    #######generated_imgs = 2 * (generated_imgs/np.amax(generated_imgs)) - 1 #normalize to between -1 and 1 as directed in the specs
     #^^ should normalization be per image?? ^^
-    generated_imgs = torch.from_numpy(generated_imgs)
-    #vrescaled = (v - minimum(v, axis=0)) * (newupper - newlower) / (max(v) - min(v)) + newlower
+    #generated_imgs = torch.from_numpy(generated_imgs)
 
-    print(inception_score(generated_imgs, cuda=False, batch_size=8, resize=True, splits=10))
+    print(inception_score(dataset, cuda=True, batch_size=32, resize=True, splits=10))
