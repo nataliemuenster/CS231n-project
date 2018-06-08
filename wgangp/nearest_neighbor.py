@@ -5,6 +5,10 @@ from scipy import misc
 from datamanager import GoogleLandmark
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import torch
+from torch.autograd import Variable, Function
+import knn_pytorch
+
 
 # python nearest_neighbor.py [train_dir] wgang/hyperparam-... 5554
 
@@ -12,6 +16,22 @@ from torchvision import transforms
 #gen_dir = "./dataset/test_gen/"
 num_samples = 30
 
+class KNearestNeighbor(Function):
+  """Accumulate x += y using broadcasting sum.
+  """
+  def __init__(self, k):
+    self.k = k
+
+  def forward(self, ref, query):
+    ref = ref.float().cuda()
+    query = query.float().cuda()
+
+    inds = torch.zeros(self.k, query.shape[1]).long().cuda()
+    dists = torch.zeros(self.k, query.shape[1]).float().cuda()
+
+    knn_pytorch.knn(ref, query, inds, dists)
+
+    return inds, dists
 
 def get_train_imgs(train_dir, image_dim, class_id):
 	device = torch.device('cuda')
@@ -21,8 +41,8 @@ def get_train_imgs(train_dir, image_dim, class_id):
 			   transforms.Resize(image_dim),
 			   transforms.ToTensor(),
                   ]))
-	data_loader = DataLoader(dataset, #batch_size=args['batch_size'],
-                shuffle=True, drop_last=True, pin_memory=True)
+	#data_loader = DataLoader(dataset, #batch_size=args['batch_size'],
+                #shuffle=True, drop_last=True, pin_memory=True)
 	"""
 	train_imgs = []
 	for filename in os.listdir(train_dir):
@@ -35,7 +55,7 @@ def get_train_imgs(train_dir, image_dim, class_id):
 	train_imgs = np.vstack(train_imgs)
 	"""
 	#need to normalize??
-	return data_loader
+	return dataset
 
 
 def get_gen_imgs(gen_dir): # TODO
@@ -69,11 +89,12 @@ if __name__ == '__main__':
 	gen_dir = sys.argv[2]
 	image_dim = int(sys.argv[3])
 	class_id = int(sys.argv[4])
-	train_loader = get_train_imgs(train_dir, image_dim, class_id)
+	train_set = get_train_imgs(train_dir, image_dim, class_id)
 	gen_imgs = get_gen_imgs(gen_dir)
 	print("calculating nearest neighbors...")
 
 	#calculate nearest neighbor for each sample
+	"""
 	total_dist = 0.0
 	for im in gen_imgs:
 		im = torch.tensor(im).cuda()
@@ -93,7 +114,9 @@ if __name__ == '__main__':
 			
 		#print("nearest: " + str(nearest))
 		total_dist += nearest_dist
+	"""
 		
+	inds, dists = KNearestNeighbor(1)(torch.tensor(gen_imgs), train_set)
 	num_gen = len(gen_ims)
 	mean_dist = total_dist/num_gen
 
